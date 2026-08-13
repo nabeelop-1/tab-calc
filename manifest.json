@@ -1,0 +1,11 @@
+{
+  "name": "Tab Calc",
+  "short_name": "Tab Calc",
+  "description": "Fast, modern calculator with browser-style tabs.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090d",
+  "theme_color": "#08090d",
+  "icons": []
+}
