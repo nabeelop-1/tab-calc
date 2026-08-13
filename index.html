@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tab Calc</title>
+<link rel="manifest" href="manifest.json">
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --bg:#08090d;
+  --text:#fff;
+  --muted:#92939d;
+  --glass:rgba(255,255,255,.10);
+  --glass2:rgba(255,255,255,.17);
+  --border:rgba(255,255,255,.15);
+  --orange:#ff9f0a;
+}
+
+body.light{
+  --bg:#e7eaf0;
+  --text:#111;
+  --muted:#666;
+  --glass:rgba(255,255,255,.48);
+  --glass2:rgba(255,255,255,.72);
+  --border:rgba(255,255,255,.8);
+}
+
+body{
+  margin:0;
+  min-height:100vh;
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",
+               "Helvetica Neue",Arial,sans-serif;
+  background:
+    radial-gradient(circle at 10% 5%,#4055a855,transparent 35%),
+    radial-gradient(circle at 95% 15%,#a13fc755,transparent 35%),
+    var(--bg);
+}
+
+.app{
+  width:min(100%,480px);
+  min-height:100vh;
+  margin:auto;
+  padding:12px;
+}
+
+/* CHROME-STYLE TAB BAR */
+
+.browser{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  height:52px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.browser::-webkit-scrollbar{display:none}
+
+.tabs{
+  display:flex;
+  gap:5px;
+  flex:1;
+  min-width:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.tabs::-webkit-scrollbar{display:none}
+
+.tab{
+  flex:0 0 auto;
+  min-width:105px;
+  max-width:145px;
+  height:42px;
+  padding:0 9px 0 14px;
+  border:1px solid var(--border);
+  border-radius:13px 13px 7px 7px;
+  color:var(--muted);
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+  display:flex;
+  align-items:center;
+  gap:8px;
+  cursor:pointer;
+}
+
+.tab.active{
+  color:var(--text);
+  background:var(--glass2);
+}
+
+.tab-name{
+  flex:1;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  text-align:left;
+  font-size:13px;
+  font-weight:600;
+}
+
+.close{
+  width:24px;
+  height:24px;
+  border:0;
+  border-radius:50%;
+  color:var(--muted);
+  background:transparent;
+  font-size:17px;
+  cursor:pointer;
+}
+
+.close:active{
+  background:rgba(255,255,255,.18);
+}
+
+.new-tab{
+  flex:0 0 42px;
+  width:42px;
+  height:42px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  color:var(--text);
+  background:var(--glass);
+  font-size:24px;
+  cursor:pointer;
+}
+
+/* TOP BAR */
+
+.top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  height:48px;
+}
+
+.title{
+  font-size:25px;
+  font-weight:700;
+  letter-spacing:-1px;
+}
+
+.theme{
+  width:40px;
+  height:40px;
+  border:1px solid var(--border);
+  border-radius:50%;
+  color:var(--text);
+  background:var(--glass);
+  font-size:17px;
+}
+
+/* DISPLAY */
+
+.display{
+  min-height:160px;
+  padding:24px 20px;
+  margin-bottom:12px;
+  border:1px solid var(--border);
+  border-radius:28px;
+  background:var(--glass);
+  backdrop-filter:blur(25px);
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:flex-end;
+}
+
+.expression{
+  width:100%;
+  min-height:24px;
+  color:var(--muted);
+  text-align:right;
+  font-size:17px;
+  overflow:hidden;
+}
+
+.result{
+  width:100%;
+  color:var(--text);
+  text-align:right;
+  font-size:clamp(45px,13vw,68px);
+  font-weight:300;
+  letter-spacing:-3px;
+  overflow:hidden;
+  white-space:nowrap;
+}
+
+/* CALCULATOR */
+
+.buttons{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+.calc{
+  aspect-ratio:1;
+  border:1px solid var(--border);
+  border-radius:50%;
+  color:var(--text);
+  background:var(--glass);
+  font-size:24px;
+  font-family:inherit;
+  cursor:pointer;
+  backdrop-filter:blur(18px);
+  transition:transform .06s ease;
+}
+
+.calc:active{
+  transform:scale(.91);
+}
+
+.function{
+  font-size:18px;
+}
+
+.operator,.equals{
+  color:white;
+  background:var(--orange);
+  border-color:transparent;
+}
+
+.zero{
+  grid-column:span 2;
+  aspect-ratio:auto;
+  border-radius:999px;
+  text-align:left;
+  padding-left:28px;
+}
+
+/* HISTORY */
+
+.history{
+  margin-top:14px;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:25px;
+  background:var(--glass);
+  backdrop-filter:blur(20px);
+}
+
+.history-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.history h2{
+  margin:0;
+  font-size:22px;
+}
+
+.clear-history{
+  border:0;
+  border-radius:999px;
+  padding:8px 13px;
+  color:var(--text);
+  background:var(--glass2);
+}
+
+.history-item{
+  padding:13px 2px;
+  border-bottom:1px solid var(--border);
+}
+
+.history-expression{
+  color:var(--muted);
+  font-size:14px;
+}
+
+.history-answer{
+  margin-top:3px;
+  font-size:22px;
+  font-weight:600;
+}
+
+.empty{
+  padding:45px 0;
+  color:var(--muted);
+  text-align:center;
+}
+
+@media(max-width:370px){
+  .app{padding:8px}
+  .buttons{gap:7px}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- CHROME STYLE TABS -->
+  <div class="browser">
+
+    <div class="tabs" id="tabs"></div>
+
+    <button class="new-tab" id="newTab">+</button>
+
+  </div>
+
+  <div class="top">
+    <div class="title">Tab Calc</div>
+
+    <button class="theme" id="theme">☀️</button>
+  </div>
+
+  <!-- CALCULATOR -->
+  <div class="display">
+
+    <div class="expression" id="expression"></div>
+
+    <div class="result" id="result">0</div>
+
+  </div>
+
+  <div class="buttons">
+
+    <button class="calc function" data-action="clear">AC</button>
+    <button class="calc function" data-action="delete">⌫</button>
+    <button class="calc function" data-action="percent">%</button>
+    <button class="calc operator" data-op="/">÷</button>
+
+    <button class="calc" data-number="7">7</button>
+    <button class="calc" data-number="8">8</button>
+    <button class="calc" data-number="9">9</button>
+    <button class="calc operator" data-op="*">×</button>
+
+    <button class="calc" data-number="4">4</button>
+    <button class="calc" data-number="5">5</button>
+    <button class="calc" data-number="6">6</button>
+    <button class="calc operator" data-op="-">−</button>
+
+    <button class="calc" data-number="1">1</button>
+    <button class="calc" data-number="2">2</button>
+    <button class="calc" data-number="3">3</button>
+    <button class="calc operator" data-op="+">+</button>
+
+    <button class="calc zero" data-number="0">0</button>
+    <button class="calc" data-number=".">.</button>
+    <button class="calc equals" data-action="equals">=</button>
+
+  </div>
+
+  <!-- HISTORY FOR CURRENT TAB -->
+  <div class="history">
+
+    <div class="history-head">
+      <h2>History</h2>
+
+      <button class="clear-history" id="clearHistory">
+        Clear
+      </button>
+    </div>
+
+    <div id="historyList"></div>
+
+  </div>
+
+</div>
+
+<script>
+/*
+  TAB CALC
+  Lightweight single-file calculator.
+*/
+
+let tabs = [];
+let activeTab = 0;
+
+const result = document.getElementById("result");
+const expression = document.getElementById("expression");
+const tabsElement = document.getElementById("tabs");
+const historyList = document.getElementById("historyList");
+
+
+function newCalculator(name) {
+  return {
+    name:name,
+    current:"0",
+    first:null,
+    operator:null,
+    waiting:false,
+    expression:"",
+    history:[]
+  };
+}
+
+
+/* START WITH ONE TAB */
+
+tabs.push(newCalculator("Tab 1"));
+
+
+/* TAB UI */
+
+function renderTabs(){
+
+  tabsElement.innerHTML = "";
+
+  tabs.forEach((tab,index)=>{
+
+    const button = document.createElement("div");
+
+    button.className =
+      "tab" + (index === activeTab ? " active" : "");
+
+    const name = document.createElement("span");
+
+    name.className = "tab-name";
+    name.textContent = tab.name;
+
+    const close = document.createElement("button");
+
+    close.className = "close";
+    close.textContent = "×";
+
+    close.onclick = event => {
+
+      event.stopPropagation();
+
+      if(tabs.length === 1) return;
+
+      tabs.splice(index,1);
+
+      if(activeTab >= tabs.length){
+        activeTab = tabs.length - 1;
+      }
+
+      renderTabs();
+      renderCurrent();
+    };
+
+    button.onclick = () => {
+
+      activeTab = index;
+
+      renderTabs();
+      renderCurrent();
+    };
+
+    button.appendChild(name);
+    button.appendChild(close);
+
+    tabsElement.appendChild(button);
+
+  });
+}
+
+
+/* NEW TAB */
+
+document.getElementById("newTab").onclick = () => {
+
+  tabs.push(
+    newCalculator("Tab " + (tabs.length + 1))
+  );
+
+  activeTab = tabs.length - 1;
+
+  renderTabs();
+  renderCurrent();
+};
+
+
+/* CURRENT TAB */
+
+function currentTab(){
+  return tabs[activeTab];
+}
+
+
+/* DISPLAY */
+
+function renderCurrent(){
+
+  const tab = currentTab();
+
+  result.textContent = tab.current;
+  expression.textContent = tab.expression;
+
+  renderHistory();
+}
+
+
+/* NUMBERS */
+
+document.querySelectorAll("[data-number]").forEach(button=>{
+
+  button.onclick = () => {
+
+    const tab = currentTab();
+    const number = button.dataset.number;
+
+    if(number === "."){
+
+      if(tab.waiting){
+        tab.current = "0";
+        tab.waiting = false;
+      }
+
+      if(!tab.current.includes(".")){
+        tab.current += ".";
+      }
+
+    }else{
+
+      if(tab.current === "0" || tab.waiting){
+
+        tab.current = number;
+        tab.waiting = false;
+
+      }else{
+
+        tab.current += number;
+
+      }
+    }
+
+    renderCurrent();
+  };
+
+});
+
+
+/* OPERATORS */
+
+document.querySelectorAll("[data-op]").forEach(button=>{
+
+  button.onclick = () => {
+
+    const tab = currentTab();
+
+    tab.first = parseFloat(tab.current);
+    tab.operator = button.dataset.op;
+
+    tab.expression =
+      format(tab.first) + " " + symbol(tab.operator);
+
+    tab.waiting = true;
+
+    renderCurrent();
+  };
+
+});
+
+
+/* ACTIONS */
+
+document.querySelectorAll("[data-action]").forEach(button=>{
+
+  button.onclick = () => {
+
+    const action = button.dataset.action;
+    const tab = currentTab();
+
+    if(action === "clear"){
+
+      tab.current = "0";
+      tab.first = null;
+      tab.operator = null;
+      tab.waiting = false;
+      tab.expression = "";
+
+    }
+
+    if(action === "delete"){
+
+      if(!tab.waiting && tab.current.length > 1){
+
+        tab.current =
+          tab.current.slice(0,-1);
+
+      }else{
+
+        tab.current = "0";
+
+      }
+    }
+
+    if(action === "percent"){
+
+      tab.current =
+        String(parseFloat(tab.current) / 100);
+
+    }
+
+    if(action === "equals"){
+
+      calculate(tab);
+
+    }
+
+    renderCurrent();
+  };
+
+});
+
+
+/* CALCULATE */
+
+function calculate(tab){
+
+  if(tab.first === null || !tab.operator){
+    return;
+  }
+
+  const second = parseFloat(tab.current);
+
+  let answer;
+
+  switch(tab.operator){
+
+    case "+":
+      answer = tab.first + second;
+      break;
+
+    case "-":
+      answer = tab.first - second;
+      break;
+
+    case "*":
+      answer = tab.first * second;
+      break;
+
+    case "/":
+
+      if(second === 0){
+
+        tab.current = "Error";
+        tab.first = null;
+        tab.operator = null;
+        tab.waiting = true;
+
+        return;
+      }
+
+      answer = tab.first / second;
+      break;
+  }
+
+  answer = Number(answer.toFixed(10));
+
+  const text =
+    format(tab.first) +
+    " " +
+    symbol(tab.operator) +
+    " " +
+    format(second);
+
+  tab.history.unshift({
+    expression:text,
+    answer:format(answer)
+  });
+
+  tab.history =
+    tab.history.slice(0,50);
+
+  tab.expression = text + " =";
+
+  tab.current = String(answer);
+
+  tab.first = null;
+  tab.operator = null;
+  tab.waiting = true;
+}
+
+
+/* HISTORY */
+
+function renderHistory(){
+
+  const tab = currentTab();
+
+  if(tab.history.length === 0){
+
+    historyList.innerHTML =
+      '<div class="empty">No calculations yet.</div>';
+
+    return;
+  }
+
+  historyList.innerHTML =
+    tab.history.map(item=>`
+
+      <div class="history-item">
+
+        <div class="history-expression">
+          ${item.expression}
+        </div>
+
+        <div class="history-answer">
+          = ${item.answer}
+        </div>
+
+      </div>
+
+    `).join("");
+}
+
+
+document.getElementById("clearHistory").onclick = () => {
+
+  currentTab().history = [];
+
+  renderHistory();
+};
+
+
+/* THEME */
+
+document.getElementById("theme").onclick = () => {
+
+  document.body.classList.toggle("light");
+
+  const light =
+    document.body.classList.contains("light");
+
+  document.getElementById("theme").textContent =
+    light ? "🌙" : "☀️";
+
+};
+
+
+/* KEYBOARD */
+
+document.addEventListener("keydown",event=>{
+
+  const key = event.key;
+
+  if(/[0-9]/.test(key)){
+
+    document
+      .querySelector(`[data-number="${key}"]`)
+      ?.click();
+
+  }
+
+  if(key === "."){
+    document.querySelector('[data-number="."]')?.click();
+  }
+
+  if(["+","-","*","/"].includes(key)){
+
+    document
+      .querySelector(`[data-op="${key}"]`)
+      ?.click();
+
+  }
+
+  if(key === "Enter"){
+    document.querySelector('[data-action="equals"]')?.click();
+  }
+
+  if(key === "Backspace"){
+    document.querySelector('[data-action="delete"]')?.click();
+  }
+
+  if(key === "Escape"){
+    document.querySelector('[data-action="clear"]')?.click();
+  }
+
+});
+
+
+function format(number){
+
+  return Number(number).toLocaleString(
+    "en-US",
+    {maximumFractionDigits:10}
+  );
+}
+
+
+function symbol(op){
+
+  if(op === "*") return "×";
+  if(op === "/") return "÷";
+  if(op === "-") return "−";
+
+  return op;
+}
+
+
+/* START */
+
+renderTabs();
+renderCurrent();
+
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js")
+    .then(() => console.log("Tab Calc service worker registered"))
+    .catch(error => console.error("Service worker error:", error));
+}
+</script>
+
+</body>
+</html>
